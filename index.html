@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather App</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+    margin: 0;
+    background: linear-gradient(-45deg, #ff00ff, #00ffff, #ffeb3b, #ff5722);
+    background-size: 400% 400%;
+    animation: gradientAnimation 15s ease infinite;
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+@keyframes gradientAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+input, button, select {
+    padding: 12px 20px;
+    margin: 5px;
+    border-radius: 25px;
+    border: none;
+    outline: none;
+    font-size: 16px;
+}
+button {
+    background: orange;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+button:hover { background: darkorange; }
+.weatherBox {
+    margin: 20px 0;
+    padding: 20px 30px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 20px;
+    display: inline-block;
+    text-align: center;
+    min-width: 280px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+.weatherBox img { width: 100px; }
+.info { margin: 5px 0; font-size: 18px; }
+.menu {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+#menuBtn {
+  font-size: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+.menu-list {
+  display: none;
+  position: absolute;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  min-width: 200px;
+  z-index: 1000;
+  color: black;
+  padding: 10px;
+}
+.menu-list button, .menu-list select {
+  display: block;
+  width: 100%;
+  margin: 5px 0;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+.menu-list button:hover { background: #eee; }
+h2 { margin-top: 15px; }
+footer {
+    margin-top: auto;
+    padding: 15px;
+    text-align: center;
+    font-size: 14px;
+    background: rgba(0,0,0,0.5);
+    border-top: 1px solid rgba(255,255,255,0.2);
+    width: 100%;
+}
+footer a {
+    color: #ffd700;
+    text-decoration: none;
+    margin: 0 10px;
+    cursor: pointer;
+}
+footer a:hover { text-decoration: underline; }
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.8);
+}
+.modal-content {
+  background-color: #222;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 15px;
+  width: 80%;
+  max-width: 600px;
+  color: white;
+  text-align: left;
+  overflow-y: auto;
+  max-height: 70%;
+}
+.close {
+  color: #ff5722;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.close:hover { color: #ffa500; }
+</style>
+</head>
+<body>
+
+<h1>🌤️ Weather App 🌤️</h1>
+
+<h2>📍 Current Location</h2>
+<div id="currentWeather" class="weatherBox">Loading...</div>
+
+<h2>🔍 Search Weather</h2>
+<input type="text" id="city" placeholder="Enter city name">
+<button id="getWeatherBtn">Get Weather</button>
+<div id="searchWeather" class="weatherBox"></div>
+
+<div class="menu">
+  <button id="menuBtn">⋮</button>
+  <div id="menuList" class="menu-list">
+    <button onclick="getLocationWeather()">📍 Refresh Current Location</button>
+    <label>🌐 Language:</label>
+    <select id="languageSelect" onchange="setLanguage()">
+        <option value="en">English</option>
+        <option value="hi">Hindi</option>
+        <option value="fr">French</option>
+        <option value="es">Spanish</option>
+    </select>
+  </div>
+</div>
+
+<footer>
+    © 2025 Weather App | Created by Abhishek Yadav | 
+    <a onclick="openModal('terms')">Terms & Conditions</a> | 
+    <a onclick="openModal('privacy')">Privacy Policy</a>
+</footer>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div id="modalText"></div>
+  </div>
+</div>
+
+<script>
+const apiKey = "0508b90b840843e48b910e034ef3f484";
+let currentLang = "en"; // default language
+
+// Toggle menu
+document.getElementById("menuBtn").addEventListener("click", function () {
+  let menu = document.getElementById("menuList");
+  menu.style.display = (menu.style.display === "block") ? "none" : "block";
+});
+
+// Set Language
+function setLanguage(){
+    currentLang = document.getElementById("languageSelect").value;
+    getLocationWeather(); // refresh current weather
+}
+
+// Fetch Weather
+function fetchWeather(city="", targetId, lat=null, lon=null){
+    document.getElementById(targetId).innerHTML = `<p class="info">Loading...</p>`;
+    let url = lat && lon ? 
+        `https://api.weatherbit.io/v2.0/current?lat=${lat}&lon=${lon}&key=${apiKey}&units=metric&lang=${currentLang}` :
+        `https://api.weatherbit.io/v2.0/current?city=${city}&key=${apiKey}&units=metric&lang=${currentLang}`;
+    
+    fetch(url)
+    .then(res=>res.json())
+    .then(data=>{
+        if(!data.data || data.data.length===0){
+            document.getElementById(targetId).innerHTML = `<p class="info">Weather data not found!</p>`;
+            return;
+        }
+        const w = data.data[0];
+        document.getElementById(targetId).innerHTML = `
+            <h3>${w.city_name}, ${w.country_code}</h3>
+            <img src="https://www.weatherbit.io/static/img/icons/${w.weather.icon}.png">
+            <p class="info">🌡️ Temp: ${w.temp}°C</p>
+            <p class="info">Feels Like: ${w.app_temp}°C</p>
+            <p class="info">Weather: ${w.weather.description}</p>
+            <p class="info">💧 Humidity: ${w.rh}%</p>
+            <p class="info">💨 Wind: ${w.wind_spd} km/h</p>
+            <p class="info">📊 Pressure: ${w.pres} mb</p>
+        `;
+    })
+    .catch(err=>{
+        console.error(err);
+        document.getElementById(targetId).innerHTML = `<p class="info">Error fetching data</p>`;
+    });
+}
+
+// Current Location Weather with fallback Delhi
+function getLocationWeather(){
+    document.getElementById("currentWeather").innerHTML = `<p class="info">Loading current location weather...</p>`;
+    if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(
+            pos=>{
+                fetchWeather("", "currentWeather", pos.coords.latitude, pos.coords.longitude);
+            },
+            err=>{
+                console.warn("Location denied or unavailable. Showing Delhi instead.");
+                fetchWeather("Delhi", "currentWeather"); // fallback
+            },
+            {timeout: 7000}
+        );
+    } else {
+        fetchWeather("Delhi", "currentWeather");
+    }
+}
+
+// Search City
+function getWeatherByCity(){
+    const city = document.getElementById("city").value.trim();
+    if(!city){
+        document.getElementById("searchWeather").innerHTML = `<p class="info">Please enter a city name!</p>`;
+        return;
+    }
+    fetchWeather(city, "searchWeather");
+}
+
+// Event Listeners
+document.getElementById("getWeatherBtn").addEventListener("click", getWeatherByCity);
+document.getElementById("city").addEventListener("keypress", e=>{
+    if(e.key==="Enter") getWeatherByCity();
+});
+
+// Load current location on page load
+window.onload = getLocationWeather;
+
+// Modal Functions
+function openModal(type){
+    const modal = document.getElementById("modal");
+    const modalText = document.getElementById("modalText");
+    if(type==='terms'){
+        modalText.innerHTML = `<h2>Terms & Conditions</h2><p>These are the Terms & Conditions of your website. Replace with your full legal terms.</p>`;
+    } else if(type==='privacy'){
+        modalText.innerHTML = `<h2>Privacy Policy</h2><p>These are the Privacy Policy details. Replace with your full privacy rules.</p>`;
+    }
+    modal.style.display = "block";
+}
+function closeModal(){ document.getElementById("modal").style.display="none"; }
+window.onclick = function(event){ if(event.target==document.getElementById("modal")) closeModal(); }
+</script>
+
+</body>
+</html>
